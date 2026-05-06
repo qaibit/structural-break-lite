@@ -1,6 +1,9 @@
 pandas
 numpy
 scikit-learn
+scipy
 catboost
 xgboost
-scipy
+tqdm
+statsmodels
+imbalanced-learn
