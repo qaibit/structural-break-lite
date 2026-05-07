@@ -39,98 +39,95 @@ except Exception:
     print(">> [PINT] PyTorch no disponible: instala torch para activar PINT.")
 
 # ===== Config =====
-# NOTE: These are starter/default hyperparameters provided for reference.
-# The production CONDOR system uses proprietary tuned values.
-# Tune these for your specific dataset and compute budget.
-# See: https://condor.qaibit.com for the optimized inference engine.
+# ⚠️  IMPORTANT: All proprietary hyperparameters have been removed.
+#     Supply your own fine-tuned parameters before running.
+#     The full optimized CONDOR engine is available at: https://condor.qaibit.com
+#     For licensing inquiries: condor@qaibit.com
+#
+#     © 2026 Qaibit Technologies S.L. — All rights reserved.
+
 SEED  = 42
 FOLDS = 5
-FAST_MODE = False  # acelera espectral, jitter, bags, etc.
+FAST_MODE = False
 
-# Salidas
+# Output
 SUBMISSION_NAME = "submission_stack_impl2_impl3.csv"
 
-# CatBoost
+# CatBoost — supply your own fine-tuned parameters
 USE_CATBOOST   = True
-CB_SEEDS_A     = (42,)              # Tune: add more seeds for multi-seed averaging
-CB_SEEDS_B     = (123,)             # Tune: add more seeds for diversity
-CB_FRACTION_A  = 0.75 if not FAST_MODE else 0.70
-CB_FRACTION_B  = 0.65 if not FAST_MODE else 0.60
+CB_SEEDS_A     = None   # Supply your own fine-tuned seeds (tuple of ints)
+CB_SEEDS_B     = None   # Supply your own fine-tuned seeds (tuple of ints)
+CB_FRACTION_A  = None   # Supply your own fine-tuned feature fraction (float 0-1)
+CB_FRACTION_B  = None   # Supply your own fine-tuned feature fraction (float 0-1)
 
-# Rank-blend (búsqueda + refine)
-BLEND_RANDOM_TRIALS = 2000 if not FAST_MODE else 500
-BLEND_REFINE_TRIALS = 1000 if not FAST_MODE else 300
-BLEND_DIRICHLET_ALPHA_GLOBAL = 1.0  # Tune: controls exploration width
-BLEND_DIRICHLET_ALPHA_LOCAL  = 50.0 # Tune: controls refinement concentration
+# Rank-blend — supply your own fine-tuned parameters
+BLEND_RANDOM_TRIALS          = None  # Supply your own (int, e.g. 1000+)
+BLEND_REFINE_TRIALS          = None  # Supply your own (int, e.g. 500+)
+BLEND_DIRICHLET_ALPHA_GLOBAL = None  # Supply your own (float)
+BLEND_DIRICHLET_ALPHA_LOCAL  = None  # Supply your own (float)
 
-# Impl2: parámetros de features
-PERIOD0 = 1500                      # Tune: dominant period of your time series
-H_H     = 3                         # Tune: number of harmonics
-SAVGOL  = (31, 3)                   # Tune: (window, poly) for Savitzky-Golay
-LAGS_PRED   = [5, 10, 20]           # Tune: lag orders for predictive divergence
-ALPHA_RIDGE = 1e-2
-W_LOCAL     = [64, 128]
-W_DIST      = [100, 200] if not FAST_MODE else [100]
-TOPK_FULL   = 300 if not FAST_MODE else 80  # Tune: top-K MI features
+# Feature engineering — supply your own fine-tuned parameters
+PERIOD0     = None  # Supply your own dominant period (int)
+H_H         = None  # Supply your own number of harmonics (int)
+SAVGOL      = None  # Supply your own (window, poly_order) tuple
+LAGS_PRED   = None  # Supply your own lag list (e.g. [5, 10, 20])
+ALPHA_RIDGE = None  # Supply your own ridge alpha (float)
+W_LOCAL     = None  # Supply your own local window sizes (list of ints)
+W_DIST      = None  # Supply your own distribution window sizes (list of ints)
+TOPK_FULL   = None  # Supply your own top-K MI features (int)
 
-# Impl2: extras
+# Extras — supply your own fine-tuned parameters
 ADD_MMD_FEATURES    = True
-MMD_WINDOWS         = [128, 256] if not FAST_MODE else [256]
+MMD_WINDOWS         = None  # Supply your own MMD window sizes (list of ints)
 APPLY_SHIFT_FILTER  = True
-SHIFT_FILTER_FRAC   = 0.05
+SHIFT_FILTER_FRAC   = None  # Supply your own KS filter fraction (float 0-1)
 SHIFT_FILTER_MODE   = "train_only"
 
-# Impl3: XGB OOF
+# XGBoost — supply your own fine-tuned parameters
 USE_IMPL3_XGB            = True
 USE_SMOTE_IMPL3          = True
-IMPL3_N_BAGS             = (5 if not FAST_MODE else 3)   # Tune: more bags = more stable
-IMPL3_EARLY_STOP_ROUNDS  = 100 if not FAST_MODE else 50
-IMPL3_MAX_ESTIMATORS     = 1500 if not FAST_MODE else 800
-IMPL3_LEARNING_RATE      = 0.05                          # Tune: lower = better but slower
-IMPL3_MAX_DEPTH          = 6                              # Tune: 5-9
-IMPL3_REG_LAMBDA         = 1.0
-IMPL3_SUBSAMPLE_GRID     = [0.75, 0.85]
-IMPL3_COLSAMPLE_GRID     = [0.70, 0.85]
+IMPL3_N_BAGS             = None  # Supply your own number of bags (int)
+IMPL3_EARLY_STOP_ROUNDS  = None  # Supply your own early stopping rounds (int)
+IMPL3_MAX_ESTIMATORS     = None  # Supply your own max estimators (int)
+IMPL3_LEARNING_RATE      = None  # Supply your own learning rate (float)
+IMPL3_MAX_DEPTH          = None  # Supply your own max depth (int)
+IMPL3_REG_LAMBDA         = None  # Supply your own L2 regularization (float)
+IMPL3_SUBSAMPLE_GRID     = None  # Supply your own subsample grid (list of floats)
+IMPL3_COLSAMPLE_GRID     = None  # Supply your own colsample grid (list of floats)
 
-# Inyectar features de Impl3 en Impl2 (opcional)
+# Inject Impl3 features into Impl2
 INJECT_IMPL3_FEATURES_IN_IMPL2 = True
 
-# ======== Curriculum + Pseudo-Labels (SIN flip duro) =========
-USE_CURRICULUM = True
-PL_POS_Q = 0.85                     # Tune: quantile threshold for positive pseudo-labels
-PL_NEG_Q = 0.15                     # Tune: quantile threshold for negative pseudo-labels
-TT_MIN_LOGP = 1.0                   # Tune: minimum -log10(p) for t-test signal
-LB_DELTA_MIN_LOGP = 0.5             # Tune: minimum Ljung-Box delta
-CURR_WEIGHT_BASE = 1.0
-CURR_WEIGHT_POS  = 1.5              # Tune: upweight for confident positives
-CURR_WEIGHT_NEG  = 1.2              # Tune: upweight for confident negatives
+# Curriculum + Pseudo-Labels — supply your own fine-tuned parameters
+USE_CURRICULUM     = True
+PL_POS_Q           = None  # Supply your own positive quantile threshold (float 0-1)
+PL_NEG_Q           = None  # Supply your own negative quantile threshold (float 0-1)
+TT_MIN_LOGP        = None  # Supply your own min -log10(p) for t-test (float)
+LB_DELTA_MIN_LOGP  = None  # Supply your own min Ljung-Box delta (float)
+CURR_WEIGHT_BASE   = None  # Supply your own base sample weight (float)
+CURR_WEIGHT_POS    = None  # Supply your own positive sample weight (float)
+CURR_WEIGHT_NEG    = None  # Supply your own negative sample weight (float)
 
-# FAST_MODE escalas espectrales
-if FAST_MODE:
-    SPEC_L_LIST = [20]
-    SPEC_M_LIST = [3]
-    SPEC_WPOST_LIST = [250]
-    SPEC_BURN_LIST  = [80]
-else:
-    SPEC_L_LIST = [16, 24]           # Tune: lag-embedding dimensions
-    SPEC_M_LIST = [2, 3]             # Tune: number of spectral components
-    SPEC_WPOST_LIST = [200]          # Tune: post-break observation window
-    SPEC_BURN_LIST  = [80]           # Tune: burn-in after break
+# Spectral scales — supply your own fine-tuned parameters
+SPEC_L_LIST     = None  # Supply your own lag-embedding dimensions (list of ints)
+SPEC_M_LIST     = None  # Supply your own spectral components (list of ints)
+SPEC_WPOST_LIST = None  # Supply your own post-break windows (list of ints)
+SPEC_BURN_LIST  = None  # Supply your own burn-in lengths (list of ints)
 
-# ======== PINT Config ========
+# PINT (Physics-Informed Neural Temporal) — supply your own fine-tuned parameters
 USE_PINT = True
-PINT_IN_LEN   = 64 if FAST_MODE else 96    # Tune: input sequence length
-PINT_OUT_LEN  = 16 if FAST_MODE else 32    # Tune: output forecast horizon
-PINT_H_LIST   = [16, 32] if FAST_MODE else [16, 32, 64]  # Tune: rollout horizons
-PINT_HIDDEN   = 64 if FAST_MODE else 64    # Tune: LSTM hidden size
-PINT_LAYERS   = 1 if FAST_MODE else 2      # Tune: LSTM depth
-PINT_LR       = 2e-3 if FAST_MODE else 2e-3  # Tune: learning rate
-PINT_EPOCHS   = (40 if FAST_MODE else 60)  # Tune: training epochs
-PINT_FT_STEPS = 0 if FAST_MODE else 10
-PINT_BS       = 128 if FAST_MODE else 128
-PINT_LAMBDA_PHYS = 0.1              # Tune: physics loss weight (SHO regularization)
-PINT_DROPOUT = 0.20                  # Tune: dropout rate
-PINT_SEARCH_DELAY = 15               # Tune: break search window
+PINT_IN_LEN      = None  # Supply your own input sequence length (int)
+PINT_OUT_LEN     = None  # Supply your own output forecast horizon (int)
+PINT_H_LIST      = None  # Supply your own rollout horizons (list of ints)
+PINT_HIDDEN      = None  # Supply your own LSTM hidden size (int)
+PINT_LAYERS      = None  # Supply your own LSTM depth (int)
+PINT_LR          = None  # Supply your own learning rate (float)
+PINT_EPOCHS      = None  # Supply your own training epochs (int)
+PINT_FT_STEPS    = None  # Supply your own fine-tuning steps (int)
+PINT_BS          = None  # Supply your own batch size (int)
+PINT_LAMBDA_PHYS = None  # Supply your own SHO physics loss weight (float)
+PINT_DROPOUT     = None  # Supply your own dropout rate (float)
+PINT_SEARCH_DELAY = None # Supply your own break search window (int)
 PINT_DEVICE = "cuda" if (HAS_TORCH and torch.cuda.is_available()) else ("mps" if (HAS_TORCH and hasattr(torch.backends, "mps") and torch.backends.mps.is_available()) else "cpu")
 
 # ============================================================
@@ -1717,20 +1714,16 @@ def oof_pint_hybrid_with_test(
     X_with_pint      = X.join(pint_df_tr, how="left").fillna(0)
     X_test_with_pint = X_test.join(pint_df_te, how="left").fillna(0)
 
-    # Parámetros exclusivos de CatBoost para el head PINT
-    params = cb_params_pint if cb_params_pint is not None else dict(
-        loss_function="Logloss", eval_metric="AUC", auto_class_weights="Balanced",
-        iterations=(1200 if FAST_MODE else 2000),  # Tune: iterations
-        learning_rate=0.03, depth=6, l2_leaf_reg=5.0,  # Tune: these values
-        verbose=False, thread_count=1, rsm=0.85, border_count=128,
-        bootstrap_type="Bayesian", bagging_temperature=1.0,
-        random_strength=0.5, leaf_estimation_iterations=4
-    )
+    # CatBoost head params — supply your own fine-tuned parameters
+    params = cb_params_pint if cb_params_pint is not None else None
+    assert params is not None, "Supply your own fine-tuned CatBoost params for PINT-Hybrid head"
 
     cb_result = oof_catboost_multi(
         X_with_pint, y, X_test_with_pint,
-        seeds=(42,), params=params,  # Tune: add more seeds
-        feat_fraction=0.60, label="PINT-Hybrid",
+        seeds=None,   # Supply your own fine-tuned seeds
+        params=params,
+        feat_fraction=None,  # Supply your own fine-tuned feature fraction
+        label="PINT-Hybrid",
         sample_weight=sample_weight
     )
 
@@ -2157,14 +2150,9 @@ def run_all(X_train_mi, y_train, X_test_mi, y_test=None):
 
     # ===== PINT Híbrido (entrenamiento por fold + CatBoost) =====
     if HAS_TORCH and USE_PINT:
-        cbP_params = dict(
-            loss_function="Logloss", eval_metric="AUC", auto_class_weights="Balanced",
-            iterations=(1200 if FAST_MODE else 2000),  # Tune
-            learning_rate=0.03, depth=6, l2_leaf_reg=5.0,  # Tune
-            verbose=False, thread_count=1, rsm=0.85, border_count=128,
-            bootstrap_type="Bayesian", bagging_temperature=1.0,
-            random_strength=0.5, leaf_estimation_iterations=4
-        )
+        # Supply your own fine-tuned CatBoost params for PINT-Hybrid
+        cbP_params = None  # Supply your own fine-tuned parameters (dict)
+        assert cbP_params is not None, "Supply your own fine-tuned CatBoost params"
         oof_pint_hybrid0, te_pint_hybrid0, auc_pint_hybrid0 = oof_pint_hybrid_with_test(
             Xmi, y_vec, Xmi_t,
             series_source_tr=X_train,
@@ -2178,16 +2166,11 @@ def run_all(X_train_mi, y_train, X_test_mi, y_test=None):
         print(">> PINT Híbrido omitido (sin PyTorch o PINT deshabilitado).")
 
     # ===== CatBoost (teacher)
-    cbA_params = dict(loss_function="Logloss", eval_metric="AUC", auto_class_weights="Balanced",
-                      iterations=(1500 if not FAST_MODE else 800), learning_rate=0.03, depth=6, l2_leaf_reg=5.0,  # Tune
-                      verbose=False, thread_count=1, rsm=0.85, border_count=128,
-                      bootstrap_type="Bayesian", bagging_temperature=1.0,
-                      random_strength=0.5, leaf_estimation_iterations=4)
-    cbB_params = dict(loss_function="Logloss", eval_metric="AUC", auto_class_weights="Balanced",
-                      iterations=(2000 if not FAST_MODE else 1000), learning_rate=0.025, depth=7, l2_leaf_reg=3.0,  # Tune
-                      verbose=False, thread_count=1, rsm=0.90, border_count=128,
-                      bootstrap_type="Bernoulli", subsample=0.80,
-                      random_strength=0.5, leaf_estimation_iterations=4)
+    # CatBoost A/B — supply your own fine-tuned parameters
+    cbA_params = None  # Supply your own fine-tuned CatBoost A parameters (dict)
+    cbB_params = None  # Supply your own fine-tuned CatBoost B parameters (dict)
+    assert cbA_params is not None, "Supply your own fine-tuned CatBoost A params"
+    assert cbB_params is not None, "Supply your own fine-tuned CatBoost B params"
 
     if USE_CATBOOST and HAS_CATBOOST:
         cbA0 = oof_catboost_multi(Xmi, y_vec, Xmi_t, seeds=CB_SEEDS_A, params=cbA_params, feat_fraction=CB_FRACTION_A, label="A")
