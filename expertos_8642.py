@@ -44,7 +44,7 @@ except Exception:
 #     The full optimized CONDOR engine is available at: https://condor.qaibit.com
 #     For licensing inquiries: condor@qaibit.com
 #
-#     © 2026 Qaibit Technologies S.L. — All rights reserved.
+#     © 2026 Qaibit Research and Innovation S.L. — All rights reserved.
 
 SEED  = 42
 FOLDS = 5
