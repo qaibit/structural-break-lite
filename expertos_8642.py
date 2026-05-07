@@ -39,6 +39,10 @@ except Exception:
     print(">> [PINT] PyTorch no disponible: instala torch para activar PINT.")
 
 # ===== Config =====
+# NOTE: These are starter/default hyperparameters provided for reference.
+# The production CONDOR system uses proprietary tuned values.
+# Tune these for your specific dataset and compute budget.
+# See: https://condor.qaibit.com for the optimized inference engine.
 SEED  = 42
 FOLDS = 5
 FAST_MODE = False  # acelera espectral, jitter, bags, etc.
@@ -48,86 +52,85 @@ SUBMISSION_NAME = "submission_stack_impl2_impl3.csv"
 
 # CatBoost
 USE_CATBOOST   = True
-CB_SEEDS_A     = (42, 1337, 2027)
-CB_SEEDS_B     = (3329, 5153)
-CB_FRACTION_A  = 0.80 if not FAST_MODE else 0.75
-CB_FRACTION_B  = 0.70 if not FAST_MODE else 0.65
+CB_SEEDS_A     = (42,)              # Tune: add more seeds for multi-seed averaging
+CB_SEEDS_B     = (123,)             # Tune: add more seeds for diversity
+CB_FRACTION_A  = 0.75 if not FAST_MODE else 0.70
+CB_FRACTION_B  = 0.65 if not FAST_MODE else 0.60
 
 # Rank-blend (búsqueda + refine)
-BLEND_RANDOM_TRIALS = 4500 if not FAST_MODE else 1200
-BLEND_REFINE_TRIALS = 2500 if not FAST_MODE else 800
-BLEND_DIRICHLET_ALPHA_GLOBAL = 1.0
-BLEND_DIRICHLET_ALPHA_LOCAL  = 80.0
+BLEND_RANDOM_TRIALS = 2000 if not FAST_MODE else 500
+BLEND_REFINE_TRIALS = 1000 if not FAST_MODE else 300
+BLEND_DIRICHLET_ALPHA_GLOBAL = 1.0  # Tune: controls exploration width
+BLEND_DIRICHLET_ALPHA_LOCAL  = 50.0 # Tune: controls refinement concentration
 
 # Impl2: parámetros de features
-PERIOD0 = 1740
-H_H     = 5
-SAVGOL  = (51, 3)
-LAGS_PRED   = [8, 12, 20]
+PERIOD0 = 1500                      # Tune: dominant period of your time series
+H_H     = 3                         # Tune: number of harmonics
+SAVGOL  = (31, 3)                   # Tune: (window, poly) for Savitzky-Golay
+LAGS_PRED   = [5, 10, 20]           # Tune: lag orders for predictive divergence
 ALPHA_RIDGE = 1e-2
-W_LOCAL     = [64, 128, 256]
-W_DIST      = [80, 160, 320] if not FAST_MODE else [160]
-TOPK_FULL   = 420 if not FAST_MODE else 90
+W_LOCAL     = [64, 128]
+W_DIST      = [100, 200] if not FAST_MODE else [100]
+TOPK_FULL   = 300 if not FAST_MODE else 80  # Tune: top-K MI features
 
 # Impl2: extras
 ADD_MMD_FEATURES    = True
-MMD_WINDOWS         = [128, 256, 512] if not FAST_MODE else [256]
-APPLY_SHIFT_FILTER  = True              # se aplica fuera de build_features_impl2
+MMD_WINDOWS         = [128, 256] if not FAST_MODE else [256]
+APPLY_SHIFT_FILTER  = True
 SHIFT_FILTER_FRAC   = 0.05
-SHIFT_FILTER_MODE   = "train_only"      # "train_only" (recomendado) | "train_test"
+SHIFT_FILTER_MODE   = "train_only"
 
 # Impl3: XGB OOF
 USE_IMPL3_XGB            = True
-USE_SMOTE_IMPL3          = True    # Si False, usa scale_pos_weight
-IMPL3_N_BAGS             = (12 if not FAST_MODE else 8)
-IMPL3_EARLY_STOP_ROUNDS  = 180 if not FAST_MODE else 120
-IMPL3_MAX_ESTIMATORS     = 3200 if not FAST_MODE else 1600
-IMPL3_LEARNING_RATE      = 0.04
-IMPL3_MAX_DEPTH          = 7
+USE_SMOTE_IMPL3          = True
+IMPL3_N_BAGS             = (5 if not FAST_MODE else 3)   # Tune: more bags = more stable
+IMPL3_EARLY_STOP_ROUNDS  = 100 if not FAST_MODE else 50
+IMPL3_MAX_ESTIMATORS     = 1500 if not FAST_MODE else 800
+IMPL3_LEARNING_RATE      = 0.05                          # Tune: lower = better but slower
+IMPL3_MAX_DEPTH          = 6                              # Tune: 5-9
 IMPL3_REG_LAMBDA         = 1.0
-IMPL3_SUBSAMPLE_GRID     = [0.70, 0.80, 0.90]
-IMPL3_COLSAMPLE_GRID     = [0.60, 0.75, 0.90]
+IMPL3_SUBSAMPLE_GRID     = [0.75, 0.85]
+IMPL3_COLSAMPLE_GRID     = [0.70, 0.85]
 
 # Inyectar features de Impl3 en Impl2 (opcional)
 INJECT_IMPL3_FEATURES_IN_IMPL2 = True
 
 # ======== Curriculum + Pseudo-Labels (SIN flip duro) =========
 USE_CURRICULUM = True
-PL_POS_Q = 0.90
-PL_NEG_Q = 0.10
-TT_MIN_LOGP = 1.30
-LB_DELTA_MIN_LOGP = 0.60
+PL_POS_Q = 0.85                     # Tune: quantile threshold for positive pseudo-labels
+PL_NEG_Q = 0.15                     # Tune: quantile threshold for negative pseudo-labels
+TT_MIN_LOGP = 1.0                   # Tune: minimum -log10(p) for t-test signal
+LB_DELTA_MIN_LOGP = 0.5             # Tune: minimum Ljung-Box delta
 CURR_WEIGHT_BASE = 1.0
-CURR_WEIGHT_POS  = 2.0
-CURR_WEIGHT_NEG  = 1.4
-# NOTA: ya no duplicamos ni flippemos etiquetas; usamos SOLO pesos
+CURR_WEIGHT_POS  = 1.5              # Tune: upweight for confident positives
+CURR_WEIGHT_NEG  = 1.2              # Tune: upweight for confident negatives
 
 # FAST_MODE escalas espectrales
 if FAST_MODE:
-    SPEC_L_LIST = [24]
+    SPEC_L_LIST = [20]
     SPEC_M_LIST = [3]
-    SPEC_WPOST_LIST = [260]
-    SPEC_BURN_LIST  = [90]
+    SPEC_WPOST_LIST = [250]
+    SPEC_BURN_LIST  = [80]
 else:
-    SPEC_L_LIST = [16,24,32]
-    SPEC_M_LIST = [2,3,4]
-    SPEC_WPOST_LIST = [220,300]
-    SPEC_BURN_LIST  = [80,120]
+    SPEC_L_LIST = [16, 24]           # Tune: lag-embedding dimensions
+    SPEC_M_LIST = [2, 3]             # Tune: number of spectral components
+    SPEC_WPOST_LIST = [200]          # Tune: post-break observation window
+    SPEC_BURN_LIST  = [80]           # Tune: burn-in after break
 
 # ======== PINT Config ========
 USE_PINT = True
-PINT_IN_LEN   = 96 if FAST_MODE else 128
-PINT_OUT_LEN  = 32 if FAST_MODE else 64
-PINT_H_LIST   = [16, 32] if FAST_MODE else [16, 32, 64, 96, 128]
-PINT_HIDDEN   = 64 if FAST_MODE else 128  # Más capacidad
-PINT_LAYERS   = 2 if FAST_MODE else 3      # Más capas
-PINT_LR       = 2e-3 if FAST_MODE else 1.5e-3  # LR más bajo
-PINT_EPOCHS   = (80 if FAST_MODE else 120)  # +20 épocas
-PINT_FT_STEPS = 0 if FAST_MODE else 20
-PINT_BS       = 128 if FAST_MODE else 256
-PINT_LAMBDA_PHYS = 0.2  # penalización física un poco menor
-PINT_DROPOUT = 0.15     # más regularización
-PINT_SEARCH_DELAY = 22  # ventana de búsqueda más amplia
+PINT_IN_LEN   = 64 if FAST_MODE else 96    # Tune: input sequence length
+PINT_OUT_LEN  = 16 if FAST_MODE else 32    # Tune: output forecast horizon
+PINT_H_LIST   = [16, 32] if FAST_MODE else [16, 32, 64]  # Tune: rollout horizons
+PINT_HIDDEN   = 64 if FAST_MODE else 64    # Tune: LSTM hidden size
+PINT_LAYERS   = 1 if FAST_MODE else 2      # Tune: LSTM depth
+PINT_LR       = 2e-3 if FAST_MODE else 2e-3  # Tune: learning rate
+PINT_EPOCHS   = (40 if FAST_MODE else 60)  # Tune: training epochs
+PINT_FT_STEPS = 0 if FAST_MODE else 10
+PINT_BS       = 128 if FAST_MODE else 128
+PINT_LAMBDA_PHYS = 0.1              # Tune: physics loss weight (SHO regularization)
+PINT_DROPOUT = 0.20                  # Tune: dropout rate
+PINT_SEARCH_DELAY = 15               # Tune: break search window
 PINT_DEVICE = "cuda" if (HAS_TORCH and torch.cuda.is_available()) else ("mps" if (HAS_TORCH and hasattr(torch.backends, "mps") and torch.backends.mps.is_available()) else "cpu")
 
 # ============================================================
@@ -1717,17 +1720,17 @@ def oof_pint_hybrid_with_test(
     # Parámetros exclusivos de CatBoost para el head PINT
     params = cb_params_pint if cb_params_pint is not None else dict(
         loss_function="Logloss", eval_metric="AUC", auto_class_weights="Balanced",
-        iterations=(2200 if FAST_MODE else 3200),
-        learning_rate=0.024, depth=7, l2_leaf_reg=10.0,
-        verbose=False, thread_count=1, rsm=0.90, border_count=128,
-        bootstrap_type="Bayesian", bagging_temperature=0.7,
-        random_strength=0.6, leaf_estimation_iterations=6
+        iterations=(1200 if FAST_MODE else 2000),  # Tune: iterations
+        learning_rate=0.03, depth=6, l2_leaf_reg=5.0,  # Tune: these values
+        verbose=False, thread_count=1, rsm=0.85, border_count=128,
+        bootstrap_type="Bayesian", bagging_temperature=1.0,
+        random_strength=0.5, leaf_estimation_iterations=4
     )
 
     cb_result = oof_catboost_multi(
         X_with_pint, y, X_test_with_pint,
-        seeds=(42, 1337, 2027), params=params,
-        feat_fraction=0.65, label="PINT-Hybrid",
+        seeds=(42,), params=params,  # Tune: add more seeds
+        feat_fraction=0.60, label="PINT-Hybrid",
         sample_weight=sample_weight
     )
 
@@ -2156,11 +2159,11 @@ def run_all(X_train_mi, y_train, X_test_mi, y_test=None):
     if HAS_TORCH and USE_PINT:
         cbP_params = dict(
             loss_function="Logloss", eval_metric="AUC", auto_class_weights="Balanced",
-            iterations=(2200 if FAST_MODE else 3200),
-            learning_rate=0.024, depth=7, l2_leaf_reg=10.0,
-            verbose=False, thread_count=1, rsm=0.90, border_count=128,
-            bootstrap_type="Bayesian", bagging_temperature=0.7,
-            random_strength=0.6, leaf_estimation_iterations=6
+            iterations=(1200 if FAST_MODE else 2000),  # Tune
+            learning_rate=0.03, depth=6, l2_leaf_reg=5.0,  # Tune
+            verbose=False, thread_count=1, rsm=0.85, border_count=128,
+            bootstrap_type="Bayesian", bagging_temperature=1.0,
+            random_strength=0.5, leaf_estimation_iterations=4
         )
         oof_pint_hybrid0, te_pint_hybrid0, auc_pint_hybrid0 = oof_pint_hybrid_with_test(
             Xmi, y_vec, Xmi_t,
@@ -2176,15 +2179,15 @@ def run_all(X_train_mi, y_train, X_test_mi, y_test=None):
 
     # ===== CatBoost (teacher)
     cbA_params = dict(loss_function="Logloss", eval_metric="AUC", auto_class_weights="Balanced",
-                      iterations=(3200 if not FAST_MODE else 2200), learning_rate=0.028, depth=7, l2_leaf_reg=12.0,
-                      verbose=False, thread_count=1, rsm=0.92, border_count=128,
-                      bootstrap_type="Bayesian", bagging_temperature=0.5,
-                      random_strength=0.7, leaf_estimation_iterations=6)
+                      iterations=(1500 if not FAST_MODE else 800), learning_rate=0.03, depth=6, l2_leaf_reg=5.0,  # Tune
+                      verbose=False, thread_count=1, rsm=0.85, border_count=128,
+                      bootstrap_type="Bayesian", bagging_temperature=1.0,
+                      random_strength=0.5, leaf_estimation_iterations=4)
     cbB_params = dict(loss_function="Logloss", eval_metric="AUC", auto_class_weights="Balanced",
-                      iterations=(4000 if not FAST_MODE else 2600), learning_rate=0.022, depth=8, l2_leaf_reg=9.0,
-                      verbose=False, thread_count=1, rsm=0.95, border_count=128,
-                      bootstrap_type="Bernoulli", subsample=0.72,
-                      random_strength=0.8, leaf_estimation_iterations=6)
+                      iterations=(2000 if not FAST_MODE else 1000), learning_rate=0.025, depth=7, l2_leaf_reg=3.0,  # Tune
+                      verbose=False, thread_count=1, rsm=0.90, border_count=128,
+                      bootstrap_type="Bernoulli", subsample=0.80,
+                      random_strength=0.5, leaf_estimation_iterations=4)
 
     if USE_CATBOOST and HAS_CATBOOST:
         cbA0 = oof_catboost_multi(Xmi, y_vec, Xmi_t, seeds=CB_SEEDS_A, params=cbA_params, feat_fraction=CB_FRACTION_A, label="A")

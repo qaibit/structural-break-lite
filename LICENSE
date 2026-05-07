@@ -1,0 +1,36 @@
+Business Source License 1.1
+
+Licensor: Qaibit Technologies S.L.
+Licensed Work: CONDOR Structural Break Detection — Lite
+Change Date: 2030-05-07
+Change License: Apache License, Version 2.0
+
+Terms
+
+The Licensor hereby grants you the right to copy, modify, create derivative
+works, redistribute, and make non-production use of the Licensed Work.
+
+"Production use" means any use of the Licensed Work, or derivatives of it,
+that is intended for or results in commercial advantage or monetary
+compensation. This includes, but is not limited to:
+  - Deploying as a paid or ad-supported service
+  - Incorporating into proprietary trading systems
+  - Using in hedge fund or asset management operations
+  - Reselling or sublicensing
+
+For production/commercial use, contact: info@qaibit.com
+
+On the Change Date, or the fourth anniversary of the first public
+distribution of a specific version of the Licensed Work under this License,
+whichever comes first, the Licensor hereby grants you rights under the terms
+of the Change License.
+
+THE LICENSED WORK IS PROVIDED "AS IS". THE LICENSOR DISCLAIMS ALL WARRANTIES,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT.
+
+For more information on the Business Source License, see https://mariadb.com/bsl11/
+
+---
+© 2026 Qaibit Technologies S.L. — All rights reserved.
+Website: https://qaibit.com | Platform: https://condor.qaibit.com
